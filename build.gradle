@@ -1,0 +1,35 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '2.7.7'
+    id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+}
+
+group = 'run.freshr'
+version = '1.0.0.RELEASE'
+sourceCompatibility = '17'
+
+repositories {
+    maven {
+        url "${NEXUS_REPOSITORY}/maven-public/"
+    }
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    compileOnly 'org.springframework.boot:spring-boot-starter-test'
+
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    implementation 'net.coobird:thumbnailator:0.4.18'
+
+    implementation 'io.minio:minio:8.4.6'
+    implementation 'run.freshr:minio:1.0.0.RELEASE'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

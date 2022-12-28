@@ -1,0 +1,29 @@
+server:
+  port: 80
+
+spring:
+  profiles:
+    active: test
+
+  session:
+    store-type: none
+
+logging:
+  level:
+    root: info
+
+freshr:
+  thumbnail:
+    directory: string
+    list:
+      -
+        prefix: string
+        suffix: string
+        width: number
+        height: number
+        position: CENTER
+  minio:
+    bucket: string
+    access: string
+    secret: string
+    host: string
