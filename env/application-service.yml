@@ -1,0 +1,7 @@
+  application:
+    container_name: ${APPLICATION_NAME}
+    image: ${APPLICATION_IMAGE}
+    ports:
+      - ${APPLICATION_OUTER_PORT}:${APPLICATION_INNER_PORT}
+    networks:
+      - local

@@ -1,0 +1,3 @@
+      /usr/bin/mc admin config set local notify_webhook:${MINIO_WEBHOOK_NAME} endpoint="http://application:${APPLICATION_OUTER_PORT}/minio";
+      /usr/bin/mc admin service restart local;
+      /usr/bin/mc event add local/${MINIO_BUCKET_NAME} arn:minio:sqs::${MINIO_WEBHOOK_NAME}:webhook --event put --prefix ${MINIO_WEBHOOK_PREFIX};

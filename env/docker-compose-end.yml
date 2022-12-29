@@ -1,0 +1,8 @@
+networks:
+  local:
+    name: local
+    driver: bridge
+
+volumes:
+  local:
+    name: local

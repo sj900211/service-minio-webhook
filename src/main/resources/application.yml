@@ -14,16 +14,54 @@ logging:
 
 freshr:
   thumbnail:
-    directory: string
+    directory: thumbnail
     list:
       -
-        prefix: string
-        suffix: string
-        width: number
-        height: number
+        width: 16
+        height: 16
+        position: CENTER
+      -
+        width: 32
+        height: 32
+        position: CENTER
+      -
+        width: 64
+        height: 64
+        position: CENTER
+      -
+        width: 128
+        height: 128
+        position: CENTER
+      -
+        width: 256
+        height: 256
+        position: CENTER
+      -
+        width: 512
+        height: 512
+        position: CENTER
+      -
+        width: 1024
+        height: 1024
         position: CENTER
   minio:
-    bucket: string
-    access: string
-    secret: string
-    host: string
+    bucket: local
+    access: minioadmin
+    secret: minioadmin
+    host: http://minio:9000
+
+#freshr:
+#  thumbnail:
+#    directory: string
+#    list:
+#      -
+#        prefix: string
+#        suffix: string
+#        width: number
+#        height: number
+#        position: CENTER
+#  minio:
+#    bucket: string
+#    access: string
+#    secret: string
+#    host: string

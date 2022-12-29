@@ -1,7 +1,10 @@
+import static java.lang.System.lineSeparator
+
 plugins {
     id 'java'
     id 'org.springframework.boot' version '2.7.7'
     id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+    id 'com.google.cloud.tools.jib' version '3.3.1'
 }
 
 group = 'run.freshr'
@@ -30,6 +33,161 @@ dependencies {
     implementation 'run.freshr:minio:1.0.0.RELEASE'
 }
 
-tasks.named('test') {
+test {
     useJUnitPlatform()
 }
+
+jib {
+    from {
+        image = 'openjdk:17-jdk-alpine'
+    }
+    to {
+        image = "${DOCKER_REGISTRY}/${DOCKER_AUTHOR}/${rootProject.name}:${version}"
+        auth {
+            username = "${DOCKER_USERNAME}"
+            password = "${DOCKER_PASSWORD}"
+        }
+    }
+}
+
+tasks.register('run') {
+    dependsOn(builder)
+
+    doFirst {
+        new File("${DOCKER_COMPOSE_BUILD_BANNER}").eachLine { line -> println(line)}
+
+        exec {
+            commandLine('docker-compose', 'build')
+        }
+    }
+
+    doLast {
+        new File("${DOCKER_COMPOSE_UP_BANNER}").eachLine { line -> println(line)}
+
+        exec {
+            commandLine('docker-compose', 'up', '-d')
+        }
+    }
+}
+
+tasks.register('clear') {
+    dependsOn(clean)
+    finalizedBy(build)
+
+    doFirst {
+        new File("${DOCKER_COMPOSE_DOWN_BANNER}").eachLine {line -> println(line)}
+    }
+
+    doLast {
+        if (file('docker-compose.yml').exists()) {
+            exec {
+                commandLine('docker-compose', 'down', '-v')
+            }
+        }
+    }
+}
+
+tasks.register('builder') {
+    dependsOn(clear)
+    finalizedBy(jibDockerBuild)
+
+    doFirst {
+        new File("${CREATE_DOCKER_COMPOSE_BANNER}").eachLine {line -> println(line)}
+    }
+
+    doLast {
+        Boolean minioFlag = MINIO_FLAG.toBoolean()
+        Boolean minioBucketFlag = MINIO_BUCKET_FLAG.toBoolean()
+        Boolean minioWebhookFlag = MINIO_WEBHOOK_FLAG.toBoolean()
+
+        StringBuilder environmentContents = new StringBuilder();
+        StringBuilder composeContents = new StringBuilder();
+
+        environmentContents
+                .append("WAIT_FOR_IT = ${WAIT_FOR_IT}")
+                .append(lineSeparator()).append(lineSeparator())
+                .append("DOCKER_COMPOSE_VERSION = ${DOCKER_COMPOSE_VERSION}")
+                .append(lineSeparator()).append(lineSeparator())
+                .append("APPLICATION_IMAGE = ${DOCKER_REGISTRY}/${DOCKER_AUTHOR}/${rootProject.name}:${version}")
+                .append(lineSeparator())
+                .append("APPLICATION_NAME = ${APPLICATION_NAME}")
+                .append(lineSeparator())
+                .append("APPLICATION_INNER_PORT = ${APPLICATION_INNER_PORT}")
+                .append(lineSeparator())
+                .append("APPLICATION_OUTER_PORT = ${APPLICATION_OUTER_PORT}")
+
+        new File("${DOCKER_COMPOSE_INIT}").eachLine {line ->
+            composeContents.append(line).append(lineSeparator())
+        }
+
+        if (minioFlag) {
+            environmentContents.append(lineSeparator()).append(lineSeparator())
+                    .append("MINIO_NAME = ${MINIO_NAME}")
+                    .append(lineSeparator())
+                    .append("MINIO_API_PORT = ${MINIO_API_PORT}")
+                    .append(lineSeparator())
+                    .append("MINIO_UI_PORT = ${MINIO_UI_PORT}")
+                    .append(lineSeparator())
+                    .append("MINIO_USERNAME = ${MINIO_USERNAME}")
+                    .append(lineSeparator())
+                    .append("MINIO_PASSWORD = ${MINIO_PASSWORD}")
+                    .append(lineSeparator())
+                    .append("MINIO_MC_NAME = ${MINIO_MC_NAME}")
+
+            composeContents.append(lineSeparator())
+
+            new File("${MINIO_SERVICE}").eachLine {line ->
+                composeContents.append(line).append(lineSeparator())
+            }
+        }
+
+        composeContents.append(lineSeparator())
+
+        new File("${APPLICATION_SERVICE}").eachLine {line ->
+            composeContents.append(line).append(lineSeparator())
+        }
+
+        if (minioBucketFlag) {
+            environmentContents.append(lineSeparator()).append(lineSeparator())
+                    .append("MINIO_BUCKET_NAME = ${MINIO_BUCKET_NAME}")
+
+            composeContents.append(lineSeparator())
+
+            new File("${MINIO_MC_SERVICE}").eachLine {line ->
+                composeContents.append(line).append(lineSeparator())
+            }
+        }
+
+        if (minioBucketFlag && minioWebhookFlag) {
+            environmentContents.append(lineSeparator()).append(lineSeparator())
+                    .append("MINIO_WEBHOOK_NAME = ${MINIO_WEBHOOK_NAME}")
+                    .append(lineSeparator())
+                    .append("MINIO_WEBHOOK_PREFIX = ${MINIO_WEBHOOK_PREFIX}")
+
+            new File("${MINIO_MC_ENTRYPOINT_WEBHOOK}").eachLine {line ->
+                composeContents.append(line).append(lineSeparator())
+            }
+        }
+
+        if (minioBucketFlag) {
+            new File("${MINIO_MC_ENTRYPOINT_END}").eachLine {line ->
+                composeContents.append(line).append(lineSeparator())
+            }
+        }
+
+        composeContents.append(lineSeparator())
+
+        new File("${DOCKER_COMPOSE_END}").eachLine {line ->
+            composeContents.append(line).append(lineSeparator())
+        }
+
+        File dockerEnvironment = new File(projectDir, '.env')
+        File dockerCompose = new File(projectDir, 'docker-compose.yml')
+
+        dockerEnvironment.text = environmentContents.toString()
+        dockerCompose.text = composeContents.toString()
+    }
+}
+
+tasks.clean.doFirst {new File("${GRADLE_CLEAN_BANNER}").eachLine { line -> println(line)}}
+tasks.build.doFirst {new File("${GRADLE_BUILD_BANNER}").eachLine { line -> println(line)}}

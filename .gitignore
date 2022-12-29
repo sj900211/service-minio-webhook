@@ -35,3 +35,9 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Fresh ###
+.env
+docker-compose.yml
+.log
+.http
